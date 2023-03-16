@@ -1,3 +1,5 @@
+#windows da error porque hay puertos resrvados en el sistema operativo
+
 version: '3' 
 services:
 
@@ -11,7 +13,7 @@ services:
     env_file:
       - ./hadoop-hive.env
     ports:
-      - "60070:50070"
+      - "50080:50070"
     networks:
       net_pet:
         ipv4_address: 172.27.1.5
@@ -29,7 +31,7 @@ services:
     depends_on:
       - namenode
     ports:
-      - "60075:50075"
+      - "50075:50075"
     networks:
       net_pet:
         ipv4_address: 172.27.1.6
@@ -39,55 +41,68 @@ services:
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=datapath4
+      - MYSQL_DATABASE=retail_db
     ports:
       - '3310:3306'
     volumes: 
       - ./mysqldata:/mysql/data
     env_file: 
       - ./mysql/variables.env
-      
-  #hive-server:
-  #  image: bde2020/hive:2.3.2-postgresql-metastore
-  #  container_name: hive-server
-  #  env_file:
-  #    - ./hadoop-hive.env
-  #  environment:
-  #    HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
-  #    SERVICE_PRECONDITION: "hive-metastore:9083"
-  #  ports:
-  #    - "10000:10000"
-  #  depends_on:
-  #    - hive-metastore
-  #  networks:
-  #    net_pet:
-  #      ipv4_address: 172.27.1.7
-  #
-  #hive-metastore:
-  #  image: bde2020/hive:2.3.2-postgresql-metastore
-  #  container_name: hive-metastore
-  #  env_file:
-  #    - ./hadoop-hive.env
-  #  command: /opt/hive/bin/hive --service metastore
-  #  environment:
-  #    SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"
-  #  ports:
-  #    - "9083:9083"
-  #  depends_on:
-  #    - hive-metastore-postgresql
-  #  networks:
-  #    net_pet:
-  #      ipv4_address: 172.27.1.8
-  #
-  #hive-metastore-postgresql:
-  #  image: bde2020/hive-metastore-postgresql:2.3.0
-  #  container_name: hive-metastore-postgresql
-  #  depends_on:
-  #    - datanode
-  #  networks:
-  #    net_pet:
-  #      ipv4_address: 172.27.1.9
-  #  
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    ports:
+      - "10000:10000"
+    depends_on:
+      - hive-metastore
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.7
+  
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    env_file:
+      - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"
+    ports:
+      - "9083:9083"
+    depends_on:
+      - hive-metastore-postgresql
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.8
+  
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    depends_on:
+      - datanode
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.9
+    
+  jupyter:
+    build: ./python
+    restart: always
+    ports:
+      - "8200:8888"
+    entrypoint:
+      jupyter lab --ip='0.0.0.0' --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
+    volumes: 
+      - ./python:/user/app
+    networks:
+      net_pet:
+        ipv4_address: 172.27.1.12
+        
   #spark-master:
   #  image: bde2020/spark-master:2.4.0-hadoop2.7
   #  container_name: spark-master
@@ -111,8 +126,6 @@ services:
   #    - SPARK_MASTER=spark://spark-master:7077
   #    - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
   #    - HIVE_CORE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore/metastore
-  #  depends_on:
-  #    - spark-master
   #  ports:
   #    - 8081:8081
   #  env_file:
@@ -164,17 +177,17 @@ services:
   #      net_pet:
   #        ipv4_address: 172.27.1.14
 
-  zookeeper:
-    hostname: zookeeper
-    container_name: zookeeper
-    image: bitnami/zookeeper:latest
-    environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-    ports:
-      - "2181:2181"
-    networks:
-      net_pet:
-        ipv4_address: 172.27.1.15
+  #zookeeper:
+  #  hostname: zookeeper
+  #  container_name: zookeeper
+  #  image: bitnami/zookeeper:latest
+  #  environment:
+  #    - ALLOW_ANONYMOUS_LOGIN=yes
+  #  ports:
+  #    - "2181:2181"
+  #  networks:
+  #    net_pet:
+  #      ipv4_address: 172.27.1.15
 
   #kafka:
   #  image: landoop/fast-data-dev:latest
